@@ -1,0 +1,54 @@
+# Local assignment/reference notes
+project.md
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+
+# Go build and test output
+/bin/
+/dist/
+*.exe
+*.test
+*.prof
+coverage.out
+coverage.html
+
+# Runtime data and logs
+/data/*
+!/data/.gitignore
+*.log
+
+# CMake and C/C++ build output
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+Testing/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
