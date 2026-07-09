@@ -15,6 +15,7 @@ secrets/
 *.exe
 *.test
 *.prof
+.gocache/
 coverage.out
 coverage.html
 

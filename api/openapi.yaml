@@ -1,0 +1,410 @@
+openapi: 3.0.3
+info:
+  title: REGS API
+  version: 1.0.0
+  description: Online judge API. Admin inherits all User permissions.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: UserInfo
+  - name: Problem
+  - name: Submission
+  - name: Statistics
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      responses:
+        "200": {description: Service is healthy}
+  /api/users/register:
+    post:
+      tags: [UserInfo]
+      summary: Register a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Credentials"}
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/users/login:
+    post:
+      tags: [UserInfo]
+      summary: Log in and issue an ES256 JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Credentials"}
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, user]
+                properties:
+                  token: {type: string}
+                  user: {$ref: "#/components/schemas/User"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /api/users/logout:
+    post:
+      tags: [UserInfo]
+      summary: Revoke the current JWT
+      security: [{bearerAuth: []}]
+      responses:
+        "204": {description: Logged out}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /api/users/me:
+    get:
+      tags: [UserInfo]
+      summary: Get the current user
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /api/users/{user_id}/submissions:
+    get:
+      tags: [UserInfo, Submission]
+      summary: List a user's submissions
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Submission list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Submission"}
+  /api/problems:
+    get:
+      tags: [Problem]
+      summary: List problems
+      responses:
+        "200":
+          description: Problem list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Problem"}
+    put:
+      tags: [Problem]
+      summary: Create or replace a problem (Admin)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [problemId, title, archive]
+              properties:
+                problemId: {type: string}
+                title: {type: string}
+                description: {type: string}
+                archive: {type: string, format: binary, description: ZIP whose root contains CMakeLists.txt}
+      responses:
+        "200":
+          description: Problem saved
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/problems/{problem_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProblemId"
+    get:
+      tags: [Problem]
+      summary: Get a problem
+      responses:
+        "200":
+          description: Problem
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      tags: [Problem]
+      summary: Delete a problem (Admin)
+      security: [{bearerAuth: []}]
+      responses:
+        "204": {description: Deleted}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/problems/{problem_id}/testcases:
+    get:
+      tags: [Problem]
+      summary: Download a problem ZIP (Admin)
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: "#/components/parameters/ProblemId"
+      responses:
+        "200":
+          description: Problem ZIP
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/submissions:
+    post:
+      tags: [Submission]
+      summary: Upload source and enqueue judging
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [problemId, source]
+              properties:
+                problemId: {type: string}
+                source: {type: string, format: binary, description: ZIP whose root contains CMakeLists.txt}
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SubmissionAccepted"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    get:
+      tags: [Submission]
+      summary: List the current user's submissions
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Submission list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Submission"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /api/submissions/{operatorId}:
+    get:
+      tags: [Submission]
+      summary: Get an owned submission result
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: "#/components/parameters/OperatorId"
+      responses:
+        "200":
+          description: Submission
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Submission"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/submissions/{operatorId}/source:
+    get:
+      tags: [Submission]
+      summary: Download an owned submission source ZIP
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: "#/components/parameters/OperatorId"
+      responses:
+        "200":
+          description: Source ZIP
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/submissions/{operatorId}/rerun:
+    post:
+      tags: [Submission]
+      summary: Re-enqueue a completed owned submission
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: "#/components/parameters/OperatorId"
+      responses:
+        "202":
+          description: Re-enqueued
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SubmissionAccepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/submissions/{operatorId}/logs/{stage}:
+    get:
+      tags: [Submission]
+      summary: Read an owned configure, compile, or run log
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: "#/components/parameters/OperatorId"
+        - name: stage
+          in: path
+          required: true
+          schema: {type: string, enum: [configure, compile, run]}
+      responses:
+        "200":
+          description: Stage log
+          content:
+            text/plain:
+              schema: {type: string}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/stats/problems/{problem_id}:
+    get:
+      tags: [Statistics]
+      summary: Get problem statistics
+      parameters:
+        - $ref: "#/components/parameters/ProblemId"
+      responses:
+        "200":
+          description: Problem statistics
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProblemStatistics"}
+  /api/stats/users/{user_id}:
+    get:
+      tags: [Statistics]
+      summary: Get user statistics
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User statistics
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserStatistics"}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    OperatorId:
+      name: operatorId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    ProblemId:
+      name: problem_id
+      in: path
+      required: true
+      schema: {type: string}
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  schemas:
+    Credentials:
+      type: object
+      required: [account, password]
+      properties:
+        account: {type: string}
+        password: {type: string, format: password, minLength: 8}
+    User:
+      type: object
+      required: [id, account, role, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        account: {type: string}
+        role: {type: string, enum: [user, admin]}
+        createdAt: {type: string, format: date-time}
+    Problem:
+      type: object
+      required: [id, title, description, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        title: {type: string}
+        description: {type: string}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    SubmissionStatus:
+      type: string
+      enum: [PENDING, RUNNING, AC, WA, SE, CE, RE, TLE]
+    Submission:
+      type: object
+      required: [operatorId, userId, problemId, status, score, createdAt]
+      properties:
+        operatorId: {type: string, format: uuid}
+        userId: {type: string, format: uuid}
+        problemId: {type: string}
+        status: {$ref: "#/components/schemas/SubmissionStatus"}
+        score: {type: integer, minimum: 0}
+        createdAt: {type: string, format: date-time}
+        startedAt: {type: string, format: date-time, nullable: true}
+        endedAt: {type: string, format: date-time, nullable: true}
+    SubmissionAccepted:
+      type: object
+      required: [operatorId, status]
+      properties:
+        operatorId: {type: string, format: uuid}
+        status: {$ref: "#/components/schemas/SubmissionStatus"}
+    ProblemStatistics:
+      type: object
+      required: [problemId, submissions, accepted, users]
+      properties:
+        problemId: {type: string}
+        submissions: {type: integer}
+        accepted: {type: integer}
+        users: {type: integer}
+    UserStatistics:
+      type: object
+      required: [userId, submissions, accepted, solved]
+      properties:
+        userId: {type: string, format: uuid}
+        submissions: {type: integer}
+        accepted: {type: integer}
+        solved: {type: integer}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: {type: string}
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Unauthorized:
+      description: Missing, invalid, expired, or revoked JWT
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Forbidden:
+      description: Insufficient role or submission ownership
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
