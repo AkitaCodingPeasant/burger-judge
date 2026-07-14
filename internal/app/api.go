@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -77,6 +79,9 @@ func RunAPI(cfg config.Config) error {
 	}
 
 	errCh := make(chan error, 1)
+	baseURL := serverURL(cfg.HTTPAddr)
+	log.Printf("後端連線位置: %s", baseURL)
+	log.Printf("Swagger 位置: %s/docs", baseURL)
 	// 使用獨立 goroutine 啟動 HTTP 服務，讓主流程能同時等待關閉訊號。
 	go func() { errCh <- server.ListenAndServe() }()
 
@@ -91,4 +96,12 @@ func RunAPI(cfg config.Config) error {
 		defer cancel()
 		return server.Shutdown(shutdownCtx)
 	}
+}
+
+// serverURL 將 HTTP 監聽位址轉換成可供使用者開啟的網址。
+func serverURL(addr string) string {
+	if strings.HasPrefix(addr, ":") {
+		return "http://localhost" + addr
+	}
+	return "http://" + addr
 }

@@ -52,6 +52,26 @@ func TestFullRouterServesSwaggerUI(t *testing.T) {
 	}
 }
 
+// TestShouldLogRequest 確認除錯輸出只留下實際 API 路徑。
+func TestShouldLogRequest(t *testing.T) {
+	for _, test := range []struct {
+		path string
+		want bool
+	}{
+		{path: "/api/problems", want: true},
+		{path: "/api/submissions", want: true},
+		{path: "/healthz", want: false},
+		{path: "/docs", want: false},
+		{path: "/docs/", want: false},
+		{path: "/openapi.yaml", want: false},
+	} {
+		request := httptest.NewRequest(http.MethodGet, test.path, nil)
+		if got := shouldLogRequest(request); got != test.want {
+			t.Fatalf("shouldLogRequest(%q) = %t, want %t", test.path, got, test.want)
+		}
+	}
+}
+
 func (f *fakeAuthentication) Register(context.Context, string, string) (domain.User, error) {
 	return domain.User{}, errors.New("not used")
 }

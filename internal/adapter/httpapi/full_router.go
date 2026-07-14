@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"regs/internal/domain"
 	"regs/internal/usecase"
@@ -85,7 +87,36 @@ func NewFullRouter(deps FullDependencies) http.Handler {
 
 	mux.HandleFunc("GET /api/stats/problems/{problem_id}", problemStats(deps.Statistics))
 	mux.HandleFunc("GET /api/stats/users/{user_id}", userStats(deps.Statistics))
-	return allowCORS(mux)
+	return allowCORS(logRequests(mux))
+}
+
+// logRequests 輸出每一筆進入 API 的基本請求資訊。
+func logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started := time.Now()
+		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(recorder, r)
+		if !shouldLogRequest(r) {
+			return
+		}
+		log.Printf("API 請求: %s || %s || %d || duration=%s || remote=%s", r.Method, r.URL.Path, recorder.status, time.Since(started).Round(time.Millisecond), r.RemoteAddr)
+	})
+}
+
+// shouldLogRequest 判斷這筆請求是否需要顯示在除錯輸出。
+func shouldLogRequest(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.Path, "/api/")
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+// WriteHeader 記錄 handler 實際回傳的 HTTP 狀態碼。
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
 }
 
 func allowCORS(next http.Handler) http.Handler {

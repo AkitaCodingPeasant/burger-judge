@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 	"time"
 
@@ -316,6 +317,7 @@ func (s *SubmissionService) judge(id string) {
 	if s.repository != nil && submission.UserID != "" {
 		_ = s.repository.UpdateSubmission(context.WithoutCancel(s.ctx), submission)
 	}
+	log.Printf("判題結果: operatorId=%s userId=%s problemId=%s status=%s score=%d duration=%s", submission.ID, submission.UserID, submission.ProblemID, submission.Status, submission.Score, submission.EndedAt.Sub(*submission.StartedAt).Round(time.Millisecond))
 }
 
 // newID 產生符合 UUID v4 格式的隨機提交 ID。
