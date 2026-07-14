@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Online judge API. Admin inherits all User permissions.
 servers:
-  - url: http://localhost:8080
+  - url: /
 tags:
   - name: UserInfo
   - name: Problem

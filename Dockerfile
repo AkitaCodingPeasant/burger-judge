@@ -16,7 +16,11 @@ COPY api /app/api
 COPY migrations /app/migrations
 COPY test-framework /app/test-framework
 COPY deploy/docker-entrypoint.sh /usr/local/bin/regs-entrypoint
-RUN chmod +x /usr/local/bin/regs-entrypoint
+# The repository may be checked out on Windows with CRLF line endings.  A CR
+# after the shebang makes Linux look for `/bin/sh\r` and the container fails
+# with the misleading "no such file or directory" error.
+RUN sed -i 's/\r$//' /usr/local/bin/regs-entrypoint \
+    && chmod +x /usr/local/bin/regs-entrypoint
 
 EXPOSE 8080
 ENTRYPOINT ["regs-entrypoint"]

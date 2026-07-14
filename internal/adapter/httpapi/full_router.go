@@ -56,6 +56,9 @@ type principalContextKey struct{}
 // NewFullRouter 註冊作業規格的完整 JWT/RBAC API。
 func NewFullRouter(deps FullDependencies) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/docs", http.StatusFound)
+	})
 	mux.HandleFunc("GET /healthz", health)
 	mux.HandleFunc("GET /docs", swaggerUI)
 	mux.HandleFunc("GET /docs/", swaggerUI)
@@ -82,7 +85,20 @@ func NewFullRouter(deps FullDependencies) http.Handler {
 
 	mux.HandleFunc("GET /api/stats/problems/{problem_id}", problemStats(deps.Statistics))
 	mux.HandleFunc("GET /api/stats/users/{user_id}", userStats(deps.Statistics))
-	return mux
+	return allowCORS(mux)
+}
+
+func allowCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func requireRole(auth authenticationService, role domain.Role, next http.HandlerFunc) http.HandlerFunc {

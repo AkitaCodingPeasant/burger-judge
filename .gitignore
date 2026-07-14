@@ -19,6 +19,9 @@ secrets/
 coverage.out
 coverage.html
 
+# Something interesting
+AGENTS.md
+
 # Runtime data and logs
 /data/*
 !/data/.gitignore
