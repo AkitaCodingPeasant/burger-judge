@@ -71,6 +71,7 @@ func RunAPI(cfg config.Config) error {
 			Problems:    problemService,
 			Submissions: service,
 			Statistics:  store,
+			OpenAPISpec: cfg.OpenAPISpecPath,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}

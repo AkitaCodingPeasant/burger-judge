@@ -11,6 +11,7 @@ type Config struct {
 	HTTPAddr          string
 	DatabaseURL       string
 	MigrationDir      string
+	OpenAPISpecPath   string
 	JWTPrivateKey     string
 	JWTPublicKey      string
 	JWTTTL            time.Duration
@@ -32,6 +33,7 @@ func Load() Config {
 		HTTPAddr:          env("HTTP_ADDR", ":8080"),
 		DatabaseURL:       env("DATABASE_URL", "postgres://regs:regs@localhost:5432/regs?sslmode=disable"),
 		MigrationDir:      env("MIGRATION_DIR", "./migrations"),
+		OpenAPISpecPath:   env("OPENAPI_SPEC_PATH", "./api/openapi.yaml"),
 		JWTPrivateKey:     env("JWT_PRIVATE_KEY", "./secrets/private.pem"),
 		JWTPublicKey:      env("JWT_PUBLIC_KEY", "./secrets/public.pem"),
 		JWTTTL:            time.Duration(envInt("JWT_TTL_MINUTES", 60)) * time.Minute,

@@ -21,7 +21,7 @@ $env:ADMIN_PASSWORD = "請換成至少八個字元的密碼"
 go run ./cmd/api
 ```
 
-API 預設位於 `http://localhost:8080`。啟動時會自動：
+API 預設位於 `http://localhost:8080`。Swagger UI 位於 `http://localhost:8080/docs`，並從同源的 `/openapi.yaml` 載入規格；第一次開啟頁面時需要網路連線以下載 Swagger UI 前端資源。啟動時會自動：
 
 1. 連線 PostgreSQL 並執行 `migrations/*.up.sql`。
 2. 產生 `secrets/private.pem` 與 `secrets/public.pem`（若尚不存在）。

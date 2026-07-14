@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +19,37 @@ import (
 
 type fakeAuthentication struct {
 	principals map[string]domain.Principal
+}
+
+// TestFullRouterServesSwaggerUI 驗證 Swagger UI 與規格皆由 API 同源提供。
+func TestFullRouterServesSwaggerUI(t *testing.T) {
+	specPath := t.TempDir() + "/openapi.yaml"
+	if err := os.WriteFile(specPath, []byte("openapi: 3.0.3\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	router := NewFullRouter(FullDependencies{OpenAPISpec: specPath})
+
+	for _, test := range []struct {
+		path        string
+		contentType string
+		body        string
+	}{
+		{path: "/docs", contentType: "text/html", body: "/openapi.yaml"},
+		{path: "/openapi.yaml", contentType: "application/yaml", body: "openapi: 3.0.3"},
+	} {
+		request := httptest.NewRequest(http.MethodGet, test.path, nil)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("GET %s status = %d, want 200", test.path, response.Code)
+		}
+		if !strings.Contains(response.Header().Get("Content-Type"), test.contentType) {
+			t.Fatalf("GET %s Content-Type = %q", test.path, response.Header().Get("Content-Type"))
+		}
+		if !strings.Contains(response.Body.String(), test.body) {
+			t.Fatalf("GET %s body does not contain %q", test.path, test.body)
+		}
+	}
 }
 
 func (f *fakeAuthentication) Register(context.Context, string, string) (domain.User, error) {

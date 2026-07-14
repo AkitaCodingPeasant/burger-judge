@@ -48,6 +48,7 @@ type FullDependencies struct {
 	Problems    problemService
 	Submissions fullSubmissionService
 	Statistics  statisticsService
+	OpenAPISpec string
 }
 
 type principalContextKey struct{}
@@ -56,6 +57,9 @@ type principalContextKey struct{}
 func NewFullRouter(deps FullDependencies) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", health)
+	mux.HandleFunc("GET /docs", swaggerUI)
+	mux.HandleFunc("GET /docs/", swaggerUI)
+	mux.HandleFunc("GET /openapi.yaml", serveOpenAPISpec(deps.OpenAPISpec))
 
 	mux.HandleFunc("POST /api/users/register", register(deps.Auth))
 	mux.HandleFunc("POST /api/users/login", login(deps.Auth))
