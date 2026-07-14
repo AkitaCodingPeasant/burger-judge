@@ -16,5 +16,48 @@ services:
       retries: 10
     restart: unless-stopped
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    environment:
+      HTTP_ADDR: :8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-regs}:${POSTGRES_PASSWORD:-regs}@postgres:5432/${POSTGRES_DB:-regs}?sslmode=disable
+      OPENAPI_SPEC_PATH: /app/api/openapi.yaml
+      MIGRATION_DIR: /app/migrations
+      JWT_PRIVATE_KEY: /app/secrets/private.pem
+      JWT_PUBLIC_KEY: /app/secrets/public.pem
+      PROBLEM_FIXTURES_ROOT: /app/test-framework
+      PROBLEMS_ROOT: /app/data/problems
+      UPLOAD_ROOT: /app/data/uploads
+      BUILD_ROOT: /app/data/builds
+      JUDGE_IMAGE: ${JUDGE_IMAGE:-yhlib/cs3060701}
+      MAX_JUDGE_WORKERS: ${MAX_JUDGE_WORKERS:-2}
+      JUDGE_BUILD_TIMEOUT_MS: ${JUDGE_BUILD_TIMEOUT_MS:-120000}
+      JUDGE_TIMEOUT_MS: ${JUDGE_TIMEOUT_MS:-3000}
+      ADMIN_ACCOUNT: ${ADMIN_ACCOUNT:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-this-admin-password}
+      DOCKER_TLS_CERTDIR: ""
+    ports:
+      - "8080:8080"
+    volumes:
+      - api-data:/app/data
+      - api-secrets:/app/secrets
+      - judge-docker-data:/var/lib/docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   postgres-data:
+  api-data:
+  api-secrets:
+  judge-docker-data:
